@@ -2,10 +2,15 @@
 #define FHT_N 256 // Set to 256 point fht
 #define WIDTH 8 // Columns
 #define HEIGHT 8 // Rows
+#define SKIP_BANDS 15 // Skips first frequencies
+#define GREEN_SPEED 0.03 // What rate does greens go down
 
 #define LED_PIN 10 // Led matrix
 
-int magnitudes[8] = [];
+int magnitudes[WIDTH] = {}; // Magnitude for each band
+int red_level[WIDTH] = {}; // Levels for reds
+double green_level[WIDTH] = {}; // Levels for greens
+double last_green[WIDTH] = {}; // Last rounds green leds
 
 #include <FHT.h>
 #include <Adafruit_NeoPixel.h>
@@ -52,6 +57,8 @@ void loop() {
     ADMUX &= ~(B00001111); // Sets adc0
     
     for (int i = 0 ; i < FHT_N ; ++i) { // Save 256 samples
+      while(ADCSRA & B01000000);
+      
       ADCSRA |= (1 << ADSC); // Start conversation
       
       byte m = ADCL; // fetch adc data
@@ -69,24 +76,69 @@ void loop() {
     
     sei();
 
-    drawBase();
+    strip.clear();
+    
+    countMagnitudes();
+
+    countRed();
+
+    countGreen();
+
+    setLeds();
+    
     strip.show();
   }
 }
 
-void drawBase() {
+void countMagnitudes() {
+  int band_width = int((75 - SKIP_BANDS)/WIDTH); // Calculate band width
+  int result = 0;
   for(int i = 0; i < WIDTH; ++i) {
-    if((i % 2) == 0) {
-      strip.setPixelColor(HEIGHT * i, 0, 255, 0); // Red
-    } else {
-      strip.setPixelColor(HEIGHT * i + HEIGHT - 1, 0, 255, 0); // Red
+    for(int j = 0; j < band_width; ++j) {
+      result = result + fht_log_out[SKIP_BANDS + i * band_width + j];
     }
+    result = result/band_width;
+    result = map(result, 0, 120, 0, 8);
+    result = constrain(result, 0, 8);
+    magnitudes[i] = result;
+    result = 0;
   }
 }
 
-void countMagnitudes() {
-  int band = int(fht_log_out.size()/WIDTH); // Calculate band width
+void countRed() {
   for(int i = 0; i < WIDTH; ++i) {
-    // TODO Calculate
+    red_level[i] = magnitudes[i] - 1;
+  }
+}
+
+void countGreen() {
+  for(int i = 0; i < WIDTH; ++i) {
+    if(magnitudes[i] < last_green[i]) {
+      green_level[i] = last_green[i] - GREEN_SPEED; 
+    } else {
+      green_level[i] = magnitudes[i];
+    }
+    green_level[i] = constrain(green_level[i], 1, 8);
+    last_green[i] = green_level[i];
+  }
+}
+
+void setLeds() {
+
+  // Setting red ones
+  for(int i = 0; i < WIDTH; ++i) {
+    for(int j = 0; j < red_level[i]; ++j) {
+      if((i % 2) == 0) {
+        strip.setPixelColor(HEIGHT * i + j, 255, 0, 0); // Red
+      } else {
+        strip.setPixelColor(HEIGHT * i + HEIGHT - j - 1, 255, 0, 0); // Red
+      }
+    }
+
+    if((i % 2) == 0) {
+        strip.setPixelColor(int(HEIGHT * i + green_level[i] - 1), 0, 255, 0); // Green
+      } else {
+        strip.setPixelColor(int(HEIGHT * i + HEIGHT - green_level[i]), 0, 255, 0); // Green
+      }
   }
 }
