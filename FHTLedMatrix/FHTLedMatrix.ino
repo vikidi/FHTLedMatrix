@@ -1,19 +1,27 @@
+//
+// FHT Led Matrix Visualisation Project
+// by Ville Saarinen
+//
+
+// BUGS: High frequency noices show also in lower bands
+
+#include <FHT.h>
+#include <Adafruit_NeoPixel.h>
+
 #define LOG_OUT 1 // Use the log output function
 #define FHT_N 256 // Set to 256 point fht
+
 #define WIDTH 8 // Columns
 #define HEIGHT 8 // Rows
 #define SKIP_BANDS 15 // Skips first frequencies
 #define GREEN_SPEED 0.03 // What rate does greens go down
 
-#define LED_PIN 10 // Led matrix
+#define LED_PIN 10 // Led matrix control pin
 
 int magnitudes[WIDTH] = {}; // Magnitude for each band
 int red_level[WIDTH] = {}; // Levels for reds
 double green_level[WIDTH] = {}; // Levels for greens
 double last_green[WIDTH] = {}; // Last rounds green leds
-
-#include <FHT.h>
-#include <Adafruit_NeoPixel.h>
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = pin number (most are valid)
@@ -25,6 +33,9 @@ double last_green[WIDTH] = {}; // Last rounds green leds
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(WIDTH * HEIGHT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
+  Serial.begin(9600);
+  Serial.println("Start");
+  
   TIMSK0 = 0; // Turn off timer0 for lower jitter
 
   ADCSRA |= (1 << ADEN); // Enable adc
@@ -80,6 +91,12 @@ void loop() {
     
     countMagnitudes();
 
+    for(int i = 0; i < WIDTH; ++i) {
+      Serial.print( magnitudes[ i ] );
+      Serial.print(" ");
+    }
+    Serial.println(" ");
+
     countRed();
 
     countGreen();
@@ -91,7 +108,7 @@ void loop() {
 }
 
 void countMagnitudes() {
-  int band_width = int((75 - SKIP_BANDS)/WIDTH); // Calculate band width
+  int band_width = int((79 - SKIP_BANDS)/WIDTH); // Calculate band width
   int result = 0;
   for(int i = 0; i < WIDTH; ++i) {
     for(int j = 0; j < band_width; ++j) {
