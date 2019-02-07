@@ -1,9 +1,20 @@
-//
-// FHT Led Matrix Visualisation Project
-// by Ville Saarinen
-//
+//////////////////////////////////////////////////
+//                                              //
+// FHT Led Matrix Audio Visualisation Project   //
+// by Ville Saarinen                            //
+//                                              //
+// The used platform is Arduino Nano            //
+// Microchip: AtMega328P                        //
+//                                              //
+// This project is about RGB led vizulizer      //
+// It uses FHT to obtain audio data from AUX    //
+// This is supposed to be integrated to         //
+// a larger audio system                        //
+//                                              //
+//////////////////////////////////////////////////
 
-// BUGS: High frequency noices show also in lower bands
+// BUGS: High frequency voices show also in lower bands 
+// (duplicates to there)
 
 #include <FHT.h>
 #include <Adafruit_NeoPixel.h>
